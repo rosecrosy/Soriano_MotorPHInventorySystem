@@ -1,0 +1,2 @@
+soriano_motorphinventorysystem.Soriano_MotorPHInventorySystem$Stock
+soriano_motorphinventorysystem.Soriano_MotorPHInventorySystem
