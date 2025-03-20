@@ -18,11 +18,11 @@ public class Soriano_MotorPHInventorySystem {
     private static final String CSV_FILE = "C:\\Users\\ERDA FOUNDATION\\Desktop\\MMDC DSA\\Soriano_MotorPHInventorySystem\\src\\inventory.csv";
 
     static class Stock {
-        String dateEntered, level, brand, engineNumber, status;
+        String dateEntered, stockLabel, brand, engineNumber, status;
 
-        public Stock(String dateEntered, String level, String brand, String engineNumber, String status) {
+        public Stock(String dateEntered, String stockLabel, String brand, String engineNumber, String status) {
             this.dateEntered = dateEntered;
-            this.level = level;
+            this.stockLabel = stockLabel;
             this.brand = brand;
             this.engineNumber = engineNumber;
             this.status = status;
@@ -30,13 +30,14 @@ public class Soriano_MotorPHInventorySystem {
 
         @Override
         public String toString() {
-            return String.format("%s, %s, %s, %s, %s", dateEntered, level, brand, engineNumber, status);
+            return String.format("%s, %s, %s, %s, %s", dateEntered, stockLabel, brand, engineNumber, status);
         }
     }
 
     static class Inventory {
         private TreeMap<String, Stock> stockMap = new TreeMap<>(); // BST for optimized search
 
+        /** Load inventory from CSV file */
         public void loadFromCSV() {
             try (BufferedReader br = new BufferedReader(new FileReader(CSV_FILE))) {
                 String line;
@@ -53,6 +54,7 @@ public class Soriano_MotorPHInventorySystem {
             }
         }
 
+        /** Save inventory to CSV file */
         public void saveToCSV() {
             try (BufferedWriter bw = new BufferedWriter(new FileWriter(CSV_FILE))) {
                 for (Stock stock : stockMap.values()) {
@@ -64,20 +66,38 @@ public class Soriano_MotorPHInventorySystem {
             }
         }
 
-        public boolean addStock(Stock stock) {
-            if (stockMap.containsKey(stock.engineNumber)) {
+        /** Add stock with manual date input if engine number is new */
+        public boolean addStock(Scanner scanner) {
+            System.out.print("Enter Engine Number: ");
+            String engineNumber = scanner.nextLine();
+
+            // Check if engine number already exists
+            if (stockMap.containsKey(engineNumber)) {
                 System.out.println("Error: Engine number already exists.");
                 return false;
             }
-            stockMap.put(stock.engineNumber, stock);
+
+            // Engine number does not exist, allow user to enter date
+            System.out.print("Enter Date (YYYY-MM-DD): ");
+            String dateEntered = scanner.nextLine();
+
+            System.out.print("Enter Brand: ");
+            String brand = scanner.nextLine();
+
+            System.out.print("Enter Status (on-hand, new, sold, old): ");
+            String status = scanner.nextLine();
+
+            Stock newStock = new Stock(dateEntered, "Stock", brand, engineNumber, status);
+            stockMap.put(engineNumber, newStock);
             saveToCSV();
             System.out.println("Stock added successfully.");
             return true;
         }
 
+        /** Delete stock from inventory */
         public boolean deleteStock(String engineNumber) {
             if (!stockMap.containsKey(engineNumber)) {
-                System.out.println("Error: Stock not found.");
+                System.out.println("❌ Error: Stock not found.");
                 return false;
             }
             Stock stock = stockMap.get(engineNumber);
@@ -91,11 +111,12 @@ public class Soriano_MotorPHInventorySystem {
             return true;
         }
 
+        /** Search for a stock */
         public Stock searchStock(String engineNumber) {
             return stockMap.get(engineNumber);
         }
 
-        // MERGE SORT IMPLEMENTATION
+        /** Merge Sort Implementation */
         public void mergeSort(List<Stock> stockList, int left, int right, String criteria) {
             if (left < right) {
                 int mid = (left + right) / 2;
@@ -106,40 +127,25 @@ public class Soriano_MotorPHInventorySystem {
         }
 
         private void merge(List<Stock> stockList, int left, int mid, int right, String criteria) {
-            int n1 = mid - left + 1;
-            int n2 = right - mid;
-
             List<Stock> leftList = new ArrayList<>(stockList.subList(left, mid + 1));
             List<Stock> rightList = new ArrayList<>(stockList.subList(mid + 1, right + 1));
 
             int i = 0, j = 0, k = left;
 
-            while (i < n1 && j < n2) {
+            while (i < leftList.size() && j < rightList.size()) {
                 if (compareStocks(leftList.get(i), rightList.get(j), criteria) <= 0) {
-                    stockList.set(k, leftList.get(i));
-                    i++;
+                    stockList.set(k++, leftList.get(i++));
                 } else {
-                    stockList.set(k, rightList.get(j));
-                    j++;
+                    stockList.set(k++, rightList.get(j++));
                 }
-                k++;
             }
 
-            while (i < n1) {
-                stockList.set(k, leftList.get(i));
-                i++;
-                k++;
-            }
-
-            while (j < n2) {
-                stockList.set(k, rightList.get(j));
-                j++;
-                k++;
-            }
+            while (i < leftList.size()) stockList.set(k++, leftList.get(i++));
+            while (j < rightList.size()) stockList.set(k++, rightList.get(j++));
         }
 
         private int compareStocks(Stock s1, Stock s2, String criteria) {
-            switch (criteria) {
+            switch (criteria.toLowerCase()) {
                 case "date": return s1.dateEntered.compareTo(s2.dateEntered);
                 case "status": return s1.status.compareTo(s2.status);
                 case "brand": return s1.brand.compareTo(s2.brand);
@@ -147,6 +153,7 @@ public class Soriano_MotorPHInventorySystem {
             }
         }
 
+        /** Sort inventory using Merge Sort */
         public List<Stock> sortStock(String criteria) {
             List<Stock> stockList = new ArrayList<>(stockMap.values());
             mergeSort(stockList, 0, stockList.size() - 1, criteria);
@@ -172,16 +179,7 @@ public class Soriano_MotorPHInventorySystem {
 
             switch (choice) {
                 case 1:
-                    System.out.print("Enter Engine Number: ");
-                    String engineNumber = scanner.nextLine();
-                    System.out.print("Enter Brand: ");
-                    String brand = scanner.nextLine();
-
-                    String date = dateFormat.format(new Date()); // System Date
-                    String level = "New"; // Default Level
-                    String status = "Old"; // Default Status
-
-                    inventory.addStock(new Stock(date, level, brand, engineNumber, status));
+                    inventory.addStock(scanner);
                     break;
                 case 2:
                     System.out.print("Enter Engine Number to Delete: ");
@@ -190,7 +188,7 @@ public class Soriano_MotorPHInventorySystem {
                 case 3:
                     System.out.print("Enter Engine Number to Search: ");
                     Stock foundStock = inventory.searchStock(scanner.nextLine());
-                    System.out.println(foundStock != null ? foundStock : "Stock not found.");
+                    System.out.println(foundStock != null ? "Found: " + foundStock : "Stock not found.");
                     break;
                 case 4:
                     System.out.print("Sort by (brand, date, status, engine): ");
